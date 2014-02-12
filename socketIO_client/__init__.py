@@ -3,24 +3,28 @@ import json
 import requests
 import time
 from collections import namedtuple
-from urlparse import urlparse
+from urllib.parse import urlparse
 
 from .exceptions import ConnectionError, TimeoutError, PacketError
 from .transports import _get_response, _negotiate_transport, TRANSPORTS
+import collections
 
 
-_SocketIOSession = namedtuple('_SocketIOSession', [
-    'id',
-    'heartbeat_timeout',
-    'server_supported_transports',
-])
+_SocketIOSession = namedtuple(
+    '_SocketIOSession', [
+        'id',
+        'heartbeat_timeout',
+        'server_supported_transports',
+    ]
+)
 _log = logging.getLogger(__name__)
 PROTOCOL_VERSION = 1
 RETRY_INTERVAL_IN_SECONDS = 1
 
 
 class BaseNamespace(object):
-    'Define client behavior'
+
+    """Define client behavior"""
 
     def __init__(self, _transport, path):
         self._transport = _transport
@@ -29,7 +33,7 @@ class BaseNamespace(object):
         self.initialize()
 
     def initialize(self):
-        'Initialize custom variables here; you can override this method'
+        """Initialize custom variables here; you can override this method"""
         pass
 
     def message(self, data='', callback=None):
@@ -43,23 +47,23 @@ class BaseNamespace(object):
         self._transport.disconnect(self.path)
 
     def on(self, event, callback):
-        'Define a callback to handle a custom event emitted by the server'
+        """Define a callback to handle a custom event emitted by the server"""
         self._callback_by_event[event] = callback
 
     def on_connect(self):
-        'Called after server connects; you can override this method'
+        """Called after server connects; you can override this method"""
         _log.debug('%s [connect]', self.path)
 
     def on_disconnect(self):
-        'Called after server disconnects; you can override this method'
+        """Called after server disconnects; you can override this method"""
         _log.debug('%s [disconnect]', self.path)
 
     def on_heartbeat(self):
-        'Called after server sends a heartbeat; you can override this method'
+        """Called after server sends a heartbeat; you can override this method"""
         _log.debug('%s [heartbeat]', self.path)
 
     def on_message(self, data):
-        'Called after server sends a message; you can override this method'
+        """Called after server sends a message; you can override this method"""
         _log.info('%s [message] %s', self.path, data)
 
     def on_event(self, event, *args):
@@ -76,11 +80,11 @@ class BaseNamespace(object):
         _log.info('%s [event] %s(%s)', self.path, event, ', '.join(arguments))
 
     def on_error(self, reason, advice):
-        'Called after server sends an error; you can override this method'
+        """Called after server sends an error; you can override this method"""
         _log.info('%s [error] %s', self.path, advice)
 
     def on_noop(self):
-        'Called after server sends a noop; you can override this method'
+        """Called after server sends a noop; you can override this method"""
         _log.info('%s [noop]', self.path)
 
     def on_open(self, *args):
@@ -109,6 +113,7 @@ class BaseNamespace(object):
 
 
 class SocketIO(object):
+
     """Create a socket.io client that connects to a socket.io server
     at the specified host and port.
 
@@ -254,13 +259,13 @@ class SocketIO(object):
         # Initialize heartbeat_pacemaker
         self.heartbeat_pacemaker = self._make_heartbeat_pacemaker(
             heartbeat_interval=socketIO_session.heartbeat_timeout / 2)
-        self.heartbeat_pacemaker.next()
+        next(self.heartbeat_pacemaker)
         # Negotiate transport
         transport = _negotiate_transport(
             self.client_supported_transports, socketIO_session,
             self.is_secure, self.base_url, **self.kw)
         # Update namespaces
-        for path, namespace in self._namespace_by_path.iteritems():
+        for path, namespace in self._namespace_by_path.items():
             namespace._transport = transport
             transport.connect(path)
         return transport
@@ -347,13 +352,13 @@ class SocketIO(object):
         find_event_callback('noop')()
 
     def _prepare_to_send_ack(self, path, packet_id):
-        'Return function that acknowledges the server'
+        """Return function that acknowledges the server"""
         return lambda *args: self._transport.ack(path, packet_id, *args)
 
 
 def find_callback(args, kw=None):
-    'Return callback whether passed as a last argument or as a keyword'
-    if args and callable(args[-1]):
+    """Return callback whether passed as a last argument or as a keyword"""
+    if args and isinstance(args[-1], collections.Callable):
         return args[-1], args[:-1]
     try:
         return kw['callback'], args

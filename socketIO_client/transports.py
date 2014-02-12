@@ -6,7 +6,7 @@ import six
 import socket
 import time
 import websocket
-from itertools import izip
+
 
 from .exceptions import SocketIOError, ConnectionError, TimeoutError
 
@@ -42,7 +42,7 @@ class _AbstractTransport(object):
         self.send_packet(2)
 
     def message(self, path, data, callback):
-        if isinstance(data, basestring):
+        if isinstance(data, str):
             code = 3
         else:
             code = 4
@@ -98,13 +98,13 @@ class _AbstractTransport(object):
         self._packets.append(packet)
 
     def set_ack_callback(self, callback):
-        'Set callback to be called after server sends an acknowledgment'
+        """Set callback to be called after server sends an acknowledgment"""
         self._packet_id += 1
         self._callback_by_packet_id[str(self._packet_id)] = callback
         return '%s+' % self._packet_id
 
     def get_ack_callback(self, packet_id):
-        'Get callback to be called after server sends an acknowledgment'
+        """Get callback to be called after server sends an acknowledgment"""
         callback = self._callback_by_packet_id[packet_id]
         del self._callback_by_packet_id[packet_id]
         return callback
@@ -207,7 +207,7 @@ class _XHR_PollingTransport(_AbstractTransport):
         _get_response(
             self._http_session.get,
             self._url,
-            params=dict(self._params.items() + [('disconnect', True)]))
+            params=dict(list(self._params.items()) + [('disconnect', True)]))
         self._connected = False
 
 
@@ -245,7 +245,7 @@ class _JSONP_PollingTransport(_AbstractTransport):
             timeout=TIMEOUT_IN_SECONDS)
 
     def recv(self):
-        'Decode the JavaScript response so that we can parse it as JSON'
+        """Decode the JavaScript response so that we can parse it as JSON"""
         response = _get_response(
             self._http_session.get,
             self._url,
@@ -270,7 +270,7 @@ class _JSONP_PollingTransport(_AbstractTransport):
         _get_response(
             self._http_session.get,
             self._url,
-            params=dict(self._params.items() + [('disconnect', True)]))
+            params=dict(list(self._params.items()) + [('disconnect', True)]))
         self._connected = False
 
 
@@ -295,7 +295,7 @@ def _negotiate_transport(
 
 def _yield_text_from_framed_data(framed_data, parse=lambda x: x):
     parts = [parse(x) for x in framed_data.split(BOUNDARY)]
-    for text_length, text in izip(parts[1::2], parts[2::2]):
+    for text_length, text in zip(parts[1::2], parts[2::2]):
         if text_length != str(len(text)):
             warning = 'invalid declared length=%s for packet_text=%s' % (
                 text_length, text)
